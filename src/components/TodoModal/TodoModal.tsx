@@ -1,40 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { Loader } from '../Loader';
-import { getUser } from '../../api';
+import { Todo } from '../../types/Todo';
 import { User } from '../../types/User';
-import { useDispatch } from 'react-redux';
-import { useAppSelector } from '../../app/store';
-import { setCurrentTodo } from '../../features/currentTodo';
+import { getUser } from '../../api';
 
-export const TodoModal: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<User>();
+interface Props {
+  todo: Todo;
+  onClose: () => void;
+}
 
-  const todo = useAppSelector(state => state.currentTodo.value);
-  const dispatch = useDispatch();
+export const TodoModal: React.FC<Props> = ({ todo, onClose }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!todo) {
-      return;
-    }
-
-    setLoading(true);
-    getUser(todo.userId)
-      .then(setUser)
-      .finally(() => setLoading(false));
-  }, [todo]);
-
-  const onTodoCloseClick = () => {
-    dispatch(setCurrentTodo(null));
-  };
-
-  if (!todo) {
-    return null;
-  }
+    getUser(todo.userId).then(fetchedUser => {
+      setUser(fetchedUser);
+      setLoading(false);
+    });
+  }, [todo.userId]);
 
   return (
     <div className="modal is-active" data-cy="modal">
-      <div className="modal-background" />
+      <div className="modal-background" onClick={onClose} />
 
       {loading ? (
         <Loader />
@@ -45,14 +33,15 @@ export const TodoModal: React.FC = () => {
               className="modal-card-title has-text-weight-medium"
               data-cy="modal-header"
             >
-              {`Todo #${todo.id}`}
+              Todo #{todo.id}
             </div>
 
+            {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
             <button
               type="button"
               className="delete"
               data-cy="modal-close"
-              onClick={() => onTodoCloseClick()}
+              onClick={onClose}
             />
           </header>
 
@@ -62,14 +51,18 @@ export const TodoModal: React.FC = () => {
             </p>
 
             <p className="block" data-cy="modal-user">
-              {todo.completed ? (
-                <strong className="has-text-success">Done</strong>
-              ) : (
-                <strong className="has-text-danger">Planned</strong>
-              )}
+              {/* <strong className="has-text-success">Done</strong> */}
+              <strong
+                className={
+                  todo.completed ? 'has-text-success' : 'has-text-danger'
+                }
+              >
+                {todo.completed ? 'Done' : 'Planned'}
+              </strong>
+
               {' by '}
 
-              <a href={`mailto:${user?.email}`}>{user?.name}</a>
+              {user && <a href={`mailto:${user.email}`}>{user.name}</a>}
             </p>
           </div>
         </div>
